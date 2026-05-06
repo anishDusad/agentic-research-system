@@ -1,0 +1,93 @@
+# =========================
+# Python / FastAPI Backend
+# =========================
+
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment files
+.env
+.env.local
+.env.*
+
+# Logs
+*.log
+
+# Build / distribution
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# SQLite / local databases
+*.db
+*.sqlite3
+
+# AI / Vector DB / embeddings
+chroma/
+faiss_index/
+vector_store/
+*.pkl
+
+# Uploaded/temp files
+uploads/
+temp/
+tmp/
+
+# =========================
+# Next.js / Frontend
+# =========================
+
+# Node modules
+node_modules/
+
+# Next.js build
+.next/
+out/
+
+# Vercel
+.vercel/
+
+# Turbopack
+.turbo/
+
+# TypeScript
+*.tsbuildinfo
+
+# =========================
+# IDEs / Editors
+# =========================
+
+.vscode/
+.idea/
+
+# =========================
+# OS Files
+# =========================
+
+.DS_Store
+Thumbs.db
+
+# =========================
+# Misc
+# =========================
+
+# Ignore local markdown notes if needed
+# AGENTS.md
+# CLAUDE.md
