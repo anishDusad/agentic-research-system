@@ -1,183 +1,386 @@
 "use client";
 
 import { useState } from "react";
-import { CSSProperties } from "react";
 
 export default function Home() {
   const [query, setQuery] = useState("");
-  const [logs, setLogs] = useState<any[]>([]);
   const [analysis, setAnalysis] = useState<any>(null);
-  const [status, setStatus] = useState<any>({
+
+  const [status, setStatus] = useState({
     planner: false,
     researcher: false,
     analyzer: false,
-    critic: false
+    critic: false,
   });
+
+  const [activities, setActivities] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const addActivity = (text: string) => {
+    setActivities((prev) => [...prev, text]);
+  };
+
   const runAnalysis = async () => {
-    setLogs([]);
     setAnalysis(null);
+
+    setActivities([]);
+
     setStatus({
       planner: false,
       researcher: false,
       analyzer: false,
-      critic: false
+      critic: false,
     });
 
     setLoading(true);
 
-    const res = await fetch(
-      `http://127.0.0.1:8000/analyze?query=${query}`
-    );
+    try {
+      const res = await fetch(
+        `http://127.0.0.1:8000/analyze?query=${encodeURIComponent(query)}`
+      );
 
-    const reader = res.body?.getReader();
-    const decoder = new TextDecoder();
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
 
-    let buffer = "";
+      let buffer = "";
 
-    while (true) {
-      const { done, value } = await reader!.read();
-      if (done) break;
+      while (true) {
+        const { done, value } = await reader!.read();
 
-      buffer += decoder.decode(value);
-      const parts = buffer.split("\n");
+        if (done) break;
 
-      for (let part of parts.slice(0, -1)) {
-        try {
-          const parsed = JSON.parse(part);
+        buffer += decoder.decode(value);
 
-          setLogs((prev) => [...prev, parsed]);
+        const parts = buffer.split("\n");
 
-          // --- Flow status tracking ---
-          if (parsed.plan) {
-            setStatus((s: any) => ({ ...s, planner: true }));
-          }
+        for (let part of parts.slice(0, -1)) {
+          try {
+            const parsed = JSON.parse(part);
 
-          if (parsed.research_logs) {
-            setStatus((s: any) => ({ ...s, researcher: true }));
-          }
+            if (parsed.plan) {
+              setStatus((s) => ({ ...s, planner: true }));
+              addActivity("Planner created execution strategy");
+            }
 
-          if (parsed.analysis) {
-            setStatus((s: any) => ({ ...s, analyzer: true }));
-            setAnalysis(parsed.analysis.analysis);
-          }
+            if (parsed.research_logs) {
+              setStatus((s) => ({ ...s, researcher: true }));
+              addActivity("Researcher gathered intelligence");
+            }
 
-          if (parsed.critic) {
-            setStatus((s: any) => ({ ...s, critic: true }));
-          }
+            if (parsed.analysis) {
+              setStatus((s) => ({ ...s, analyzer: true }));
+              addActivity("Analyzer generated insights");
 
-          if (parsed.retry_analysis) {
-            setAnalysis(parsed.retry_analysis.analysis);
-          }
+              setAnalysis(parsed.analysis.analysis);
+            }
 
-        } catch {}
+            if (parsed.critic) {
+              setStatus((s) => ({ ...s, critic: true }));
+              addActivity("Critic validated final output");
+            }
+
+            if (parsed.retry_analysis) {
+              setAnalysis(parsed.retry_analysis.analysis);
+            }
+          } catch {}
+        }
+
+        buffer = parts[parts.length - 1];
       }
-
-      buffer = parts[parts.length - 1];
+    } catch (err) {
+      console.error(err);
+      addActivity("Connection failed");
     }
 
     setLoading(false);
   };
 
   return (
-    <div style={{ padding: 20, fontFamily: "sans-serif" }}>
-      
+    <main
+      style={{
+        minHeight: "100vh",
+        background: "#FDFBD4",
+        color: "#38240D",
+        padding: "48px",
+        fontFamily: "Inter, sans-serif",
+      }}
+    >
       {/* HEADER */}
-      <h1 style={{ fontSize: 28 }}>Agentic AI System</h1>
+
+      <div style={{ marginBottom: 40 }}>
+        <h1
+          style={{
+            fontSize: 56,
+            fontWeight: 800,
+            lineHeight: 1.1,
+            marginBottom: 14,
+            letterSpacing: "-2px",
+          }}
+        >
+          Agentic AI Research System
+        </h1>
+
+        <p
+          style={{
+            color: "#713600",
+            opacity: 0.85,
+            fontSize: 20,
+            maxWidth: 800,
+            lineHeight: 1.6,
+          }}
+        >
+          Multi-agent intelligence platform for automated research,
+          strategy, and market analysis.
+        </p>
+      </div>
 
       {/* INPUT */}
-      <div style={{ marginBottom: 20 }}>
+
+      <div
+        style={{
+          display: "flex",
+          gap: 18,
+          marginBottom: 42,
+        }}
+      >
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Enter query"
-          style={inputStyle}
+          placeholder="Ask anything..."
+          style={{
+            flex: 1,
+            background: "#FFFDF2",
+            border: "1px solid #E7DCC8",
+            color: "#38240D",
+            padding: "20px",
+            borderRadius: 20,
+            fontSize: 17,
+            outline: "none",
+            boxShadow: "0 4px 14px rgba(56,36,13,0.05)",
+          }}
         />
 
-        <button onClick={runAnalysis} style={buttonStyle}>
-          Run
+        <button
+          onClick={runAnalysis}
+          disabled={loading}
+          style={{
+            padding: "20px 34px",
+            borderRadius: 20,
+            border: "none",
+            background:
+              "linear-gradient(to right, #713600, #C05800)",
+            color: "#FDFBD4",
+            fontWeight: 700,
+            cursor: "pointer",
+            fontSize: 15,
+            boxShadow: "0 8px 24px rgba(192,88,0,0.25)",
+          }}
+        >
+          {loading ? "Running..." : "Run Analysis"}
         </button>
       </div>
 
-      {loading && <p>Running agents...</p>}
+      {/* WORKFLOW */}
 
-      {/* FLOW DIAGRAM */}
-      <div style={{ marginBottom: 20 }}>
-        <h3>Agent Flow</h3>
-        <div style={flowContainer}>
-          <FlowNode label="Planner" active={status.planner} />
-          <Arrow />
-          <FlowNode label="Researcher" active={status.researcher} />
-          <Arrow />
-          <FlowNode label="Analyzer" active={status.analyzer} />
-          <Arrow />
-          <FlowNode label="Critic" active={status.critic} />
+      <div style={{ marginBottom: 34 }}>
+        <h2
+          style={{
+            marginBottom: 18,
+            fontSize: 26,
+            fontWeight: 700,
+          }}
+        >
+          Agent Workflow
+        </h2>
+
+        <div
+          style={{
+            display: "flex",
+            gap: 16,
+            flexWrap: "wrap",
+          }}
+        >
+          <FlowNode
+            label="Planner"
+            active={status.planner}
+          />
+
+          <FlowNode
+            label="Researcher"
+            active={status.researcher}
+          />
+
+          <FlowNode
+            label="Analyzer"
+            active={status.analyzer}
+          />
+
+          <FlowNode
+            label="Critic"
+            active={status.critic}
+          />
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 20 }}>
+      {/* MAIN GRID */}
 
-        {/* LEFT: LOGS */}
-        <div style={logsContainer}>
-          <h3>Trace</h3>
-          {logs.map((log, i) => (
-            <pre key={i} style={logBox}>
-              {JSON.stringify(log, null, 2)}
-            </pre>
-          ))}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "360px 1fr",
+          gap: 28,
+          alignItems: "start",
+        }}
+      >
+        {/* LEFT PANEL */}
+
+        <div
+          style={{
+            background: "#FFFDF2",
+            border: "1px solid #E7DCC8",
+            borderRadius: 28,
+            padding: 28,
+            boxShadow: "0 8px 24px rgba(56,36,13,0.05)",
+          }}
+        >
+          <h2
+            style={{
+              marginBottom: 24,
+              fontSize: 28,
+              fontWeight: 700,
+            }}
+          >
+            Agent Activity
+          </h2>
+
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+            }}
+          >
+            {activities.length === 0 && (
+              <div
+                style={{
+                  color: "#713600",
+                  opacity: 0.75,
+                  fontSize: 15,
+                }}
+              >
+                Waiting for execution...
+              </div>
+            )}
+
+            {activities.map((activity, i) => (
+              <div
+                key={i}
+                style={{
+                  background: "#FDFBF4",
+                  borderRadius: 18,
+                  padding: 18,
+                  border: "1px solid #E7DCC8",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 12,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 15,
+                      color: "#38240D",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {activity}
+                  </span>
+
+                  <span
+                    style={{
+                      color: "#C05800",
+                      fontSize: 14,
+                      fontWeight: 700,
+                    }}
+                  >
+                    ✓
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* RIGHT: ANALYSIS */}
-        <div style={{ width: "60%" }}>
+        {/* RIGHT PANEL */}
+
+        <div>
           {analysis && (
-            <div>
+            <div
+              style={{
+                display: "grid",
+                gap: 24,
+              }}
+            >
+              <InsightCard
+                title="Trends"
+                borderColor="#713600"
+                items={analysis.trends}
+              />
 
-              <Card title="Trends">
-                {analysis.trends?.map((t: any, i: number) => (
-                  <p key={i}>• {formatItem(t)}</p>
-                ))}
-              </Card>
+              <InsightCard
+                title="Risks"
+                borderColor="#A63A00"
+                items={analysis.risks}
+              />
 
-              <Card title="Risks" color="#ffe5e5">
-                {analysis.risks?.map((r: any, i: number) => (
-                  <p key={i}>• {formatItem(r)}</p>
-                ))}
-              </Card>
+              <InsightCard
+                title="Opportunities"
+                borderColor="#C05800"
+                items={analysis.opportunities}
+              />
 
-              <Card title="Opportunities" color="#e6ffe6">
-                {analysis.opportunities?.map((o: any, i: number) => (
-                  <p key={i}>• {formatItem(o)}</p>
-                ))}
-              </Card>
-
-              <Card title="Key Players">
-                {analysis.key_players?.map((k: any, i: number) => (
-                  <p key={i}>• {formatItem(k)}</p>
-                ))}
-              </Card>
-
+              <InsightCard
+                title="Key Players"
+                borderColor="#38240D"
+                items={analysis.key_players}
+              />
             </div>
           )}
         </div>
-
       </div>
-    </div>
+    </main>
   );
 }
 
+/* FLOW NODE */
 
-/* ---------- UI COMPONENTS ---------- */
-
-function FlowNode({ label, active }: any) {
+function FlowNode({
+  label,
+  active,
+}: {
+  label: string;
+  active: boolean;
+}) {
   return (
     <div
       style={{
-        padding: "10px 16px",
-        borderRadius: 8,
-        background: active ? "#000" : "#ccc",
-        color: "#fff",
-        fontSize: 14
+        padding: "16px 26px",
+        borderRadius: 18,
+        background: active ? "#C05800" : "#FFFDF2",
+        border: active
+          ? "1px solid #C05800"
+          : "1px solid #E7DCC8",
+        color: active ? "#FDFBD4" : "#38240D",
+        fontWeight: 700,
+        fontSize: 15,
+        transition: "0.3s",
+        boxShadow: active
+          ? "0 6px 18px rgba(192,88,0,0.2)"
+          : "0 2px 8px rgba(56,36,13,0.03)",
       }}
     >
       {label}
@@ -185,69 +388,75 @@ function FlowNode({ label, active }: any) {
   );
 }
 
-function Arrow() {
-  return <span style={{ margin: "0 8px" }}>→</span>;
-}
+/* INSIGHT CARD */
 
-function Card({ title, children, color = "#fff" }: any) {
+function InsightCard({
+  title,
+  items,
+  borderColor,
+}: {
+  title: string;
+  items: any[];
+  borderColor: string;
+}) {
   return (
     <div
       style={{
-        border: "1px solid #ddd",
-        borderRadius: 10,
-        padding: 15,
-        marginBottom: 15,
-        background: color
+        background: "#FFFDF2",
+        borderRadius: 28,
+        padding: 28,
+        borderLeft: `6px solid ${borderColor}`,
+        borderTop: "1px solid #E7DCC8",
+        borderRight: "1px solid #E7DCC8",
+        borderBottom: "1px solid #E7DCC8",
+        boxShadow: "0 8px 24px rgba(56,36,13,0.05)",
       }}
     >
-      <h3>{title}</h3>
-      {children}
+      <h2
+        style={{
+          marginBottom: 22,
+          fontSize: 30,
+          fontWeight: 800,
+          color: "#38240D",
+        }}
+      >
+        {title}
+      </h2>
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 14,
+        }}
+      >
+        {items?.map((item: any, i: number) => (
+          <div
+            key={i}
+            style={{
+              background: "#FDFBF4",
+              padding: "18px 20px",
+              borderRadius: 18,
+              color: "#38240D",
+              border: "1px solid #E7DCC8",
+              lineHeight: 1.6,
+              fontSize: 15,
+            }}
+          >
+            • {formatItem(item)}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
+/* FORMATTER */
+
 function formatItem(item: any) {
   if (typeof item === "string") return item;
+
   if (item.name) return item.name;
+
   return JSON.stringify(item);
 }
-
-
-/* ---------- STYLES ---------- */
-
-const inputStyle = {
-  padding: 10,
-  width: 300,
-  border: "1px solid #ccc",
-  borderRadius: 6
-};
-
-const buttonStyle = {
-  marginLeft: 10,
-  padding: "10px 16px",
-  background: "#000",
-  color: "#fff",
-  borderRadius: 6
-};
-
-const logsContainer: CSSProperties = {
-  width: "40%",
-  maxHeight: "500px",
-  overflowY: "auto",
-  border: "1px solid #ddd",
-  padding: 10,
-  borderRadius: 8
-};
-
-const logBox = {
-  fontSize: 12,
-  background: "#f5f5f5",
-  padding: 8,
-  borderRadius: 6,
-  marginBottom: 10
-};
-
-const flowContainer = {
-  display: "flex",
-  alignItems: "center"
-};
