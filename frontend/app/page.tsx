@@ -389,7 +389,6 @@ function FlowNode({
 }
 
 /* INSIGHT CARD */
-
 function InsightCard({
   title,
   items,
